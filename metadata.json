@@ -1,0 +1,5 @@
+{
+  "name": "Lumina Countdown",
+  "description": "A visually stunning, mobile-first event countdown tracker with glassmorphism aesthetics and PWA support.",
+  "requestFramePermissions": []
+}
