@@ -3,6 +3,7 @@ export interface EventItem {
   name: string;
   date: string; // ISO string format YYYY-MM-DD
   color: string; // Hex code or Tailwind color class
+  icon: string; // Icon name
   createdAt: number;
 }
 

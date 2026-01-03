@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="nl">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/icon.png?v=2" />
     <link rel="apple-touch-icon" href="/icon.png?v=2" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#0f172a" />
+    <meta name="theme-color" content="#1e293b" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Lumina" />
-    <meta name="description" content="Beautiful Event Countdown" />
+    <meta name="apple-mobile-web-app-title" content="Countdown" />
+    <meta name="description" content="Prachtige Evenement Afteller" />
     
     <!-- PWA Manifest with versioning to force reload -->
     <link rel="manifest" href="/manifest.json?v=2" />
@@ -17,21 +17,23 @@
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:ital,wght@1,700&display=swap" rel="stylesheet">
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
+        darkMode: 'class',
         theme: {
           extend: {
             fontFamily: {
               sans: ['Inter', 'sans-serif'],
+              montserrat: ['Montserrat', 'sans-serif'],
             },
             colors: {
-              glass: "rgba(255, 255, 255, 0.05)",
-              glassBorder: "rgba(255, 255, 255, 0.1)",
-              glassHighlight: "rgba(255, 255, 255, 0.2)",
+              glass: "rgba(255, 255, 255, 0.1)",
+              glassBorder: "rgba(255, 255, 255, 0.2)",
+              glassHighlight: "rgba(255, 255, 255, 0.3)",
             },
             animation: {
               'blob': 'blob 10s infinite',
@@ -50,8 +52,8 @@
     </script>
     <style>
       body {
-        background-color: #000;
-        color: #fff;
+        /* Default background color handled by Tailwind classes in App/Background */
+        transition: background-color 0.3s ease;
         overscroll-behavior-y: none;
       }
       /* Custom scrollbar for webkit */
@@ -62,11 +64,14 @@
         background: transparent;
       }
       ::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.2);
+        background: rgba(156, 163, 175, 0.5);
         border-radius: 10px;
       }
+      .dark ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+      }
     </style>
-    <title>Lumina Countdown</title>
+    <title>Countdown</title>
   <script type="importmap">
 {
   "imports": {

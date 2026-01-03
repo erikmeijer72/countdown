@@ -1,6 +1,6 @@
 {
-  "name": "Lumina Countdown",
-  "short_name": "Lumina",
+  "name": "Countdown",
+  "short_name": "Countdown",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",

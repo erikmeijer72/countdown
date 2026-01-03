@@ -25,7 +25,7 @@ export const formatDate = (dateString: string): string => {
     month: 'short', 
     day: 'numeric' 
   };
-  return new Date(dateString).toLocaleDateString('en-US', options);
+  return new Date(dateString).toLocaleDateString('nl-NL', options);
 };
 
 export const getRelativeColor = (diff: DateDiff, baseColor: string): string => {

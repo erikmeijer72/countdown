@@ -1,71 +1,189 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Sparkles, LayoutGrid } from 'lucide-react';
+import { Plus, Sparkles, LayoutGrid, Settings } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Background from './components/Background';
 import EventCard from './components/EventCard';
 import AddEventModal from './components/AddEventModal';
+import Menu from './components/Menu';
 import { EventItem } from './types';
 
 const App: React.FC = () => {
   const [events, setEvents] = useState<EventItem[]>(() => {
     try {
       const saved = localStorage.getItem('lumina_events');
-      return saved ? JSON.parse(saved) : [];
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.map((e: any) => ({ ...e, icon: e.icon || 'calendar' }));
+      }
+      return [];
     } catch {
       return [];
     }
   });
+
+  const [isDark, setIsDark] = useState(() => {
+    try {
+      const savedTheme = localStorage.getItem('lumina_theme');
+      // Default to light unless explicitly set to dark
+      return savedTheme === 'dark';
+    } catch {
+      return false;
+    }
+  });
   
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<EventItem | null>(null);
 
   useEffect(() => {
     localStorage.setItem('lumina_events', JSON.stringify(events));
   }, [events]);
 
-  const addEvent = (name: string, date: string, color: string) => {
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('lumina_theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('lumina_theme', 'light');
+    }
+  }, [isDark]);
+
+  const toggleTheme = () => setIsDark(!isDark);
+
+  const addEvent = (name: string, date: string, color: string, icon: string) => {
     const newEvent: EventItem = {
       id: crypto.randomUUID(),
       name,
       date,
       color,
+      icon,
       createdAt: Date.now(),
     };
-    // Sort events by date automatically
     const updatedEvents = [...events, newEvent].sort((a, b) => 
       new Date(a.date).getTime() - new Date(b.date).getTime()
     );
     setEvents(updatedEvents);
   };
 
+  const editEvent = (id: string, name: string, date: string, color: string, icon: string) => {
+    setEvents(prevEvents => {
+      const updatedEvents = prevEvents.map(event => 
+        event.id === id ? { ...event, name, date, color, icon } : event
+      );
+      return updatedEvents.sort((a, b) => 
+        new Date(a.date).getTime() - new Date(b.date).getTime()
+      );
+    });
+    setEditingEvent(null);
+  };
+
   const deleteEvent = (id: string) => {
     setEvents(events.filter(e => e.id !== id));
   };
 
+  const deleteAllEvents = () => {
+    if (events.length > 0 && window.confirm('Weet je zeker dat je alle evenementen wilt verwijderen? Dit kan niet ongedaan worden gemaakt.')) {
+      setEvents([]);
+      setIsMenuOpen(false);
+    }
+  };
+
+  const handleExport = () => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(events));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", "countdown_backup.json");
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+  };
+
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const json = JSON.parse(event.target?.result as string);
+        if (Array.isArray(json)) {
+           // Basic validation
+           setEvents(json);
+           alert('Succesvol geïmporteerd!');
+        } else {
+           alert('Ongeldig bestandsformaat');
+        }
+      } catch (err) {
+        alert('Fout bij het lezen van bestand');
+      }
+    };
+    reader.readAsText(file);
+    // Reset input
+    e.target.value = '';
+  };
+
+  const handleOpenNewEvent = () => {
+    setEditingEvent(null);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEditEvent = (event: EventItem) => {
+    setEditingEvent(event);
+    setIsModalOpen(true);
+  };
+
   return (
-    <div className="min-h-screen font-sans text-gray-100 relative">
+    <div className="min-h-screen font-sans text-slate-800 dark:text-white relative selection:bg-cyan-500/30">
       <Background />
       
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-30 px-6 py-6 bg-gradient-to-b from-[#0f172a]/90 to-transparent backdrop-blur-[2px]">
-        <div className="max-w-4xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+      <header className="fixed top-0 left-0 right-0 z-30 px-6 py-6 bg-white/70 dark:bg-[#1e293b]/80 backdrop-blur-md border-b border-gray-200 dark:border-white/5 transition-colors duration-300">
+        <div className="relative max-w-4xl mx-auto flex items-center justify-between">
+          
+          {/* Menu Button (Left) */}
+           <button 
+             onClick={() => setIsMenuOpen(!isMenuOpen)}
+             className="p-2 rounded-xl text-slate-600 dark:text-white/70 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+           >
+             <Settings size={20} />
+           </button>
+
+          {/* Centered Title */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center shadow-lg shadow-cyan-500/30">
               <Sparkles size={16} className="text-white" />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">
-              Lumina
+            <h1 className="text-2xl font-montserrat font-bold italic tracking-tight text-slate-800 dark:text-white drop-shadow-sm">
+              Countdown
             </h1>
           </div>
-          {events.length > 0 && (
-             <div className="text-xs font-medium text-white/40 bg-white/5 px-3 py-1 rounded-full backdrop-blur-md border border-white/5">
-                {events.length} Upcoming
-             </div>
-          )}
+
+          {/* Count (Right) */}
+          <div className="w-10 flex justify-end">
+             {events.length > 0 && (
+                <div className="text-xs font-bold text-slate-500 dark:text-white/60 bg-slate-100 dark:bg-white/10 px-3 py-1 rounded-full border border-gray-200 dark:border-white/10 hidden sm:block">
+                    {events.length}
+                </div>
+             )}
+          </div>
         </div>
       </header>
 
+      {/* Menu Dropdown */}
+      <Menu 
+        isOpen={isMenuOpen} 
+        onClose={() => setIsMenuOpen(false)}
+        onImport={handleImport}
+        onExport={handleExport}
+        onDeleteAll={deleteAllEvents}
+        isDark={isDark}
+        toggleTheme={toggleTheme}
+        hasEvents={events.length > 0}
+      />
+
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-6 pt-28 pb-32">
+      <main className="max-w-4xl mx-auto px-6 pt-32 pb-32">
         <AnimatePresence mode="wait">
           {events.length === 0 ? (
             <motion.div 
@@ -74,28 +192,29 @@ const App: React.FC = () => {
               exit={{ opacity: 0 }}
               className="flex flex-col items-center justify-center py-20 text-center"
             >
-              <div className="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6">
-                <LayoutGrid size={32} className="text-white/20" />
+              <div className="w-24 h-24 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center mb-6 shadow-xl">
+                <LayoutGrid size={40} className="text-slate-300 dark:text-white/30" />
               </div>
-              <h2 className="text-xl font-semibold text-white mb-2">No countdowns yet</h2>
-              <p className="text-white/40 mb-8 max-w-xs mx-auto">
-                Add an upcoming event to start tracking days in style.
+              <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">Nog geen aftellers</h2>
+              <p className="text-slate-500 dark:text-white/50 mb-8 max-w-xs mx-auto leading-relaxed">
+                Voeg je eerste evenement toe en begin met aftellen in stijl.
               </p>
               <button
-                onClick={() => setIsModalOpen(true)}
-                className="px-6 py-3 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-white font-medium transition-all"
+                onClick={handleOpenNewEvent}
+                className="px-8 py-4 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold hover:bg-slate-800 dark:hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl active:scale-95"
               >
-                Create First Event
+                Eerste evenement maken
               </button>
             </motion.div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <AnimatePresence>
                 {events.map((event, index) => (
                   <EventCard 
                     key={event.id} 
                     event={event} 
                     onDelete={deleteEvent}
+                    onEdit={handleOpenEditEvent}
                     index={index}
                   />
                 ))}
@@ -110,18 +229,20 @@ const App: React.FC = () => {
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={() => setIsModalOpen(true)}
-          className="pointer-events-auto bg-gradient-to-r from-cyan-500 to-blue-500 text-white p-4 rounded-full shadow-2xl shadow-cyan-500/40 border border-white/20 backdrop-blur-md flex items-center gap-2 pr-6"
+          onClick={handleOpenNewEvent}
+          className="pointer-events-auto bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-6 py-4 rounded-full shadow-2xl shadow-slate-900/20 dark:shadow-black/20 flex items-center gap-3 font-bold text-sm hover:shadow-slate-900/30 dark:hover:shadow-white/20 transition-all"
         >
-          <Plus size={24} />
-          <span className="font-semibold text-sm">New Event</span>
+          <Plus size={22} className="text-cyan-400 dark:text-cyan-600" />
+          <span>Nieuw evenement</span>
         </motion.button>
       </div>
 
       <AddEventModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
-        onAdd={addEvent} 
+        onAdd={addEvent}
+        onEdit={editEvent}
+        editingEvent={editingEvent}
       />
     </div>
   );
