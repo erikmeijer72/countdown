@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Background from './components/Background';
 import EventCard from './components/EventCard';
 import AddEventModal from './components/AddEventModal';
+import ResultModal, { ResultType } from './components/ResultModal';
 import Menu from './components/Menu';
 import { EventItem } from './types';
 
@@ -38,7 +39,6 @@ const App: React.FC = () => {
   const [isDark, setIsDark] = useState(() => {
     try {
       const savedTheme = localStorage.getItem('lumina_theme');
-      // Default to light unless explicitly set to dark
       return savedTheme === 'dark';
     } catch {
       return false;
@@ -48,6 +48,34 @@ const App: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<EventItem | null>(null);
+
+  // Result Modal State
+  const [resultModal, setResultModal] = useState<{
+    isOpen: boolean;
+    type: ResultType;
+    title: string;
+    message: string;
+    onConfirm?: () => void;
+  }>({
+    isOpen: false,
+    type: 'info',
+    title: '',
+    message: '',
+  });
+
+  const showResult = (type: ResultType, title: string, message: string, onConfirm?: () => void) => {
+    setResultModal({
+      isOpen: true,
+      type,
+      title,
+      message,
+      onConfirm
+    });
+  };
+
+  const closeResult = () => {
+    setResultModal(prev => ({ ...prev, isOpen: false }));
+  };
 
   useEffect(() => {
     localStorage.setItem('lumina_events', JSON.stringify(events));
@@ -97,20 +125,32 @@ const App: React.FC = () => {
   };
 
   const deleteAllEvents = () => {
-    if (events.length > 0 && window.confirm('Weet je zeker dat je alle evenementen wilt verwijderen? Dit kan niet ongedaan worden gemaakt.')) {
-      setEvents([]);
-      setIsMenuOpen(false);
-    }
+    if (events.length === 0) return;
+    
+    setIsMenuOpen(false);
+    showResult(
+      'confirm',
+      'Alles verwijderen?',
+      'Weet je zeker dat je alle aftellers wilt verwijderen? Dit kan niet ongedaan worden gemaakt.',
+      () => {
+        setEvents([]);
+        // Small timeout to allow the modal to close before showing the success modal if desired,
+        // or just show immediate success
+        setTimeout(() => {
+            showResult('success', 'Verwijderd', 'Alle evenementen zijn succesvol verwijderd.');
+        }, 300);
+      }
+    );
   };
 
   const handleAddHolidays = () => {
+    setIsMenuOpen(false);
     const newEvents: EventItem[] = [];
     const now = new Date();
     now.setHours(0, 0, 0, 0);
     const currentYear = now.getFullYear();
     const yearsToCheck = [currentYear, currentYear + 1];
 
-    // Definitions
     const fixedHolidays = [
       { name: "Nieuwjaarsdag", month: 0, day: 1, icon: 'party', color: 'purple' },
       { name: "Koningsdag", month: 3, day: 27, icon: 'party', color: 'orange' },
@@ -131,15 +171,12 @@ const App: React.FC = () => {
     const addedTypes = new Set<string>();
 
     yearsToCheck.forEach(year => {
-      // 1. Fixed Holidays
       fixedHolidays.forEach(h => {
         if (addedTypes.has(h.name)) return;
-
         const date = new Date(year, h.month, h.day);
         if (date >= now) {
-          const dateString = date.toLocaleDateString('en-CA'); // YYYY-MM-DD
+          const dateString = date.toLocaleDateString('en-CA');
           const exists = events.some(e => e.date === dateString && e.name === h.name);
-          
           if (!exists) {
             newEvents.push({
               id: crypto.randomUUID(),
@@ -154,18 +191,14 @@ const App: React.FC = () => {
         }
       });
 
-      // 2. Variable Holidays (Easter based)
       const easter = getEaster(year);
       variableHolidays.forEach(h => {
         if (addedTypes.has(h.name)) return;
-
         const date = new Date(easter);
         date.setDate(easter.getDate() + h.offset);
-
         if (date >= now) {
           const dateString = date.toLocaleDateString('en-CA');
           const exists = events.some(e => e.date === dateString && e.name === h.name);
-          
           if (!exists) {
             newEvents.push({
               id: crypto.randomUUID(),
@@ -185,10 +218,9 @@ const App: React.FC = () => {
       setEvents(prev => [...prev, ...newEvents].sort((a, b) => 
         new Date(a.date).getTime() - new Date(b.date).getTime()
       ));
-      alert(`${newEvents.length} feestdagen toegevoegd!`);
-      setIsMenuOpen(false);
+      showResult('success', 'Feestdagen toegevoegd', `Er zijn ${newEvents.length} nieuwe feestdagen aan je lijst toegevoegd.`);
     } else {
-      alert('Alle aankomende feestdagen staan al in je lijst.');
+      showResult('info', 'Geen nieuwe feestdagen', 'Alle aankomende feestdagen staan al in je lijst.');
     }
   };
 
@@ -201,7 +233,6 @@ const App: React.FC = () => {
     const minutes = String(now.getMinutes()).padStart(2, '0');
 
     const fileName = `countdown_${day}-${month}-${year}_${hours}-${minutes}.json`;
-
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(events));
     const downloadAnchorNode = document.createElement('a');
     downloadAnchorNode.setAttribute("href", dataStr);
@@ -209,6 +240,9 @@ const App: React.FC = () => {
     document.body.appendChild(downloadAnchorNode);
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
+    
+    // Show success message
+    showResult('success', 'Back-up Gemaakt', 'Je evenementen zijn succesvol geëxporteerd.');
   };
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -220,18 +254,16 @@ const App: React.FC = () => {
       try {
         const json = JSON.parse(event.target?.result as string);
         if (Array.isArray(json)) {
-           // Basic validation
            setEvents(json);
-           alert('Succesvol geïmporteerd!');
+           showResult('success', 'Back-up Hersteld', 'Je evenementen zijn succesvol geïmporteerd.');
         } else {
-           alert('Ongeldig bestandsformaat');
+           showResult('error', 'Fout', 'Ongeldig bestandsformaat.');
         }
       } catch (err) {
-        alert('Fout bij het lezen van bestand');
+        showResult('error', 'Fout', 'Kon het bestand niet lezen.');
       }
     };
     reader.readAsText(file);
-    // Reset input
     e.target.value = '';
   };
 
@@ -293,6 +325,16 @@ const App: React.FC = () => {
         isDark={isDark}
         toggleTheme={toggleTheme}
         hasEvents={events.length > 0}
+      />
+
+      {/* Result Modal */}
+      <ResultModal 
+        isOpen={resultModal.isOpen}
+        onClose={closeResult}
+        type={resultModal.type}
+        title={resultModal.title}
+        message={resultModal.message}
+        onConfirm={resultModal.onConfirm}
       />
 
       {/* Main Content */}
