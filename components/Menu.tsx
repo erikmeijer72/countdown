@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, Upload, Trash2, Moon, Sun } from 'lucide-react';
+import { Download, Upload, Trash2, Moon, Sun, CalendarPlus } from 'lucide-react';
 
 interface MenuProps {
   isOpen: boolean;
@@ -8,12 +8,13 @@ interface MenuProps {
   onImport: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onExport: () => void;
   onDeleteAll: () => void;
+  onAddHolidays: () => void;
   isDark: boolean;
   toggleTheme: () => void;
   hasEvents: boolean;
 }
 
-const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onImport, onExport, onDeleteAll, isDark, toggleTheme, hasEvents }) => {
+const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onImport, onExport, onDeleteAll, onAddHolidays, isDark, toggleTheme, hasEvents }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImportClick = () => {
@@ -49,6 +50,16 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onImport, onExport, onDele
               </button>
 
               <div className="h-px bg-gray-200 dark:bg-white/10 my-1" />
+
+              <button
+                onClick={() => {
+                  onAddHolidays();
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-colors"
+              >
+                <CalendarPlus size={18} />
+                Feestdagen NL
+              </button>
 
               <button
                 onClick={() => {

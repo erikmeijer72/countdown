@@ -7,6 +7,20 @@ import AddEventModal from './components/AddEventModal';
 import Menu from './components/Menu';
 import { EventItem } from './types';
 
+// Helper to calculate Easter Date (Anonymous/Meeus/Jones/Butcher algorithm)
+const getEaster = (year: number): Date => {
+  const f = Math.floor;
+  const G = year % 19;
+  const C = f(year / 100);
+  const H = (C - f(C / 4) - f((8 * C + 13) / 25) + 19 * G + 15) % 30;
+  const I = H - f(H / 28) * (1 - f(29 / (H + 1)) * f((21 - G) / 11));
+  const J = (year + f(year / 4) + I + 2 - C + f(C / 4)) % 7;
+  const L = I - J;
+  const month = 3 + f((L + 40) / 44);
+  const day = L + 28 - 31 * f(month / 4);
+  return new Date(year, month - 1, day);
+};
+
 const App: React.FC = () => {
   const [events, setEvents] = useState<EventItem[]>(() => {
     try {
@@ -89,11 +103,109 @@ const App: React.FC = () => {
     }
   };
 
+  const handleAddHolidays = () => {
+    const newEvents: EventItem[] = [];
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const currentYear = now.getFullYear();
+    const yearsToCheck = [currentYear, currentYear + 1];
+
+    // Definitions
+    const fixedHolidays = [
+      { name: "Nieuwjaarsdag", month: 0, day: 1, icon: 'party', color: 'purple' },
+      { name: "Koningsdag", month: 3, day: 27, icon: 'party', color: 'orange' },
+      { name: "Bevrijdingsdag", month: 4, day: 5, icon: 'party', color: 'blue' },
+      { name: "1e Kerstdag", month: 11, day: 25, icon: 'party', color: 'emerald' },
+      { name: "2e Kerstdag", month: 11, day: 26, icon: 'party', color: 'emerald' },
+    ];
+
+    const variableHolidays = [
+      { name: "Goede Vrijdag", offset: -2, icon: 'star', color: 'blue' },
+      { name: "1e Paasdag", offset: 0, icon: 'star', color: 'cyan' },
+      { name: "2e Paasdag", offset: 1, icon: 'star', color: 'cyan' },
+      { name: "Hemelvaartsdag", offset: 39, icon: 'plane', color: 'cyan' },
+      { name: "1e Pinksterdag", offset: 49, icon: 'star', color: 'pink' },
+      { name: "2e Pinksterdag", offset: 50, icon: 'star', color: 'pink' },
+    ];
+
+    const addedTypes = new Set<string>();
+
+    yearsToCheck.forEach(year => {
+      // 1. Fixed Holidays
+      fixedHolidays.forEach(h => {
+        if (addedTypes.has(h.name)) return;
+
+        const date = new Date(year, h.month, h.day);
+        if (date >= now) {
+          const dateString = date.toLocaleDateString('en-CA'); // YYYY-MM-DD
+          const exists = events.some(e => e.date === dateString && e.name === h.name);
+          
+          if (!exists) {
+            newEvents.push({
+              id: crypto.randomUUID(),
+              name: h.name,
+              date: dateString,
+              color: h.color,
+              icon: h.icon,
+              createdAt: Date.now()
+            });
+          }
+          addedTypes.add(h.name);
+        }
+      });
+
+      // 2. Variable Holidays (Easter based)
+      const easter = getEaster(year);
+      variableHolidays.forEach(h => {
+        if (addedTypes.has(h.name)) return;
+
+        const date = new Date(easter);
+        date.setDate(easter.getDate() + h.offset);
+
+        if (date >= now) {
+          const dateString = date.toLocaleDateString('en-CA');
+          const exists = events.some(e => e.date === dateString && e.name === h.name);
+          
+          if (!exists) {
+            newEvents.push({
+              id: crypto.randomUUID(),
+              name: h.name,
+              date: dateString,
+              color: h.color,
+              icon: h.icon,
+              createdAt: Date.now()
+            });
+          }
+          addedTypes.add(h.name);
+        }
+      });
+    });
+
+    if (newEvents.length > 0) {
+      setEvents(prev => [...prev, ...newEvents].sort((a, b) => 
+        new Date(a.date).getTime() - new Date(b.date).getTime()
+      ));
+      alert(`${newEvents.length} feestdagen toegevoegd!`);
+      setIsMenuOpen(false);
+    } else {
+      alert('Alle aankomende feestdagen staan al in je lijst.');
+    }
+  };
+
   const handleExport = () => {
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+
+    const fileName = `countdown_${day}-${month}-${year}_${hours}-${minutes}.json`;
+
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(events));
     const downloadAnchorNode = document.createElement('a');
     downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", "countdown_backup.json");
+    downloadAnchorNode.setAttribute("download", fileName);
     document.body.appendChild(downloadAnchorNode);
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
@@ -177,6 +289,7 @@ const App: React.FC = () => {
         onImport={handleImport}
         onExport={handleExport}
         onDeleteAll={deleteAllEvents}
+        onAddHolidays={handleAddHolidays}
         isDark={isDark}
         toggleTheme={toggleTheme}
         hasEvents={events.length > 0}
