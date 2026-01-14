@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Sparkles, LayoutGrid, Settings } from 'lucide-react';
+import { Plus, Sparkles, LayoutGrid, Settings, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Background from './components/Background';
 import EventCard from './components/EventCard';
@@ -49,8 +49,10 @@ const App: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<EventItem | null>(null);
   
-  // PWA Install Prompt State
+  // PWA Install State
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isIos, setIsIos] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
 
   // Result Modal State
   const [resultModal, setResultModal] = useState<{
@@ -95,6 +97,14 @@ const App: React.FC = () => {
   }, [isDark]);
 
   useEffect(() => {
+    // Check if device is iOS
+    const iosCheck = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    setIsIos(iosCheck);
+
+    // Check if running in standalone mode (installed)
+    const standaloneCheck = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
+    setIsStandalone(standaloneCheck);
+
     const handler = (e: any) => {
       // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
@@ -110,7 +120,22 @@ const App: React.FC = () => {
   }, []);
 
   const handleInstallClick = () => {
-    if (!deferredPrompt) return;
+    setIsMenuOpen(false);
+
+    if (isIos) {
+      showResult(
+        'info', 
+        'Installeren op iPhone/iPad', 
+        'Tik op de "Delen" knop (vierkant met pijl) in je browserbalk en kies vervolgens voor "Zet op beginscherm".'
+      );
+      return;
+    }
+
+    if (!deferredPrompt) {
+        // Fallback if button is clicked but no prompt available (should be handled by hiding button, but just in case)
+        showResult('info', 'Installatie', 'Gebruik het menu van je browser om de app toe te voegen aan je startscherm.');
+        return;
+    }
     
     // Show the install prompt
     deferredPrompt.prompt();
@@ -119,10 +144,10 @@ const App: React.FC = () => {
     deferredPrompt.userChoice.then((choiceResult: any) => {
       if (choiceResult.outcome === 'accepted') {
         console.log('User accepted the install prompt');
+        setDeferredPrompt(null);
       } else {
         console.log('User dismissed the install prompt');
       }
-      setDeferredPrompt(null);
     });
   };
 
@@ -169,8 +194,6 @@ const App: React.FC = () => {
       'Weet je zeker dat je alle aftellers wilt verwijderen? Dit kan niet ongedaan worden gemaakt.',
       () => {
         setEvents([]);
-        // Small timeout to allow the modal to close before showing the success modal if desired,
-        // or just show immediate success
         setTimeout(() => {
             showResult('success', 'Verwijderd', 'Alle evenementen zijn succesvol verwijderd.');
         }, 300);
@@ -276,7 +299,6 @@ const App: React.FC = () => {
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
     
-    // Show success message
     showResult('success', 'Back-up Gemaakt', 'Je evenementen zijn succesvol geëxporteerd.');
   };
 
@@ -312,6 +334,9 @@ const App: React.FC = () => {
     setIsModalOpen(true);
   };
 
+  // Determine if we should show the install button (Header or Menu)
+  const showInstallOption = !isStandalone && (!!deferredPrompt || isIos);
+
   return (
     <div className="min-h-screen font-sans text-slate-800 dark:text-white relative selection:bg-cyan-500/30">
       <Background />
@@ -320,13 +345,15 @@ const App: React.FC = () => {
       <header className="fixed top-0 left-0 right-0 z-30 px-6 py-6 bg-white/70 dark:bg-[#1e293b]/80 backdrop-blur-md border-b border-gray-200 dark:border-white/5 transition-colors duration-300">
         <div className="relative max-w-4xl mx-auto flex items-center justify-between">
           
-          {/* Menu Button (Left) */}
-           <button 
-             onClick={() => setIsMenuOpen(!isMenuOpen)}
-             className="p-2 rounded-xl text-slate-600 dark:text-white/70 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
-           >
-             <Settings size={20} />
-           </button>
+          <div className="flex items-center gap-2">
+            {/* Menu Button */}
+             <button 
+               onClick={() => setIsMenuOpen(!isMenuOpen)}
+               className="p-2 rounded-xl text-slate-600 dark:text-white/70 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+             >
+               <Settings size={20} />
+             </button>
+          </div>
 
           {/* Centered Title */}
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-2">
@@ -338,8 +365,24 @@ const App: React.FC = () => {
             </h1>
           </div>
 
-          {/* Count (Right) */}
-          <div className="w-10 flex justify-end">
+          {/* Right Actions */}
+          <div className="flex items-center justify-end gap-2 w-20">
+             {/* Install Button (Visible in Header) */}
+             {showInstallOption && (
+                <motion.button 
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={handleInstallClick}
+                  className="p-2 rounded-xl bg-blue-500 text-white shadow-lg shadow-blue-500/30 hover:bg-blue-600 transition-colors"
+                  title="App Installeren"
+                >
+                  <Download size={18} />
+                </motion.button>
+             )}
+
+             {/* Count */}
              {events.length > 0 && (
                 <div className="text-xs font-bold text-slate-500 dark:text-white/60 bg-slate-100 dark:bg-white/10 px-3 py-1 rounded-full border border-gray-200 dark:border-white/10 hidden sm:block">
                     {events.length}
@@ -358,7 +401,7 @@ const App: React.FC = () => {
         onDeleteAll={deleteAllEvents}
         onAddHolidays={handleAddHolidays}
         onInstall={handleInstallClick}
-        canInstall={!!deferredPrompt}
+        canInstall={showInstallOption}
         isDark={isDark}
         toggleTheme={toggleTheme}
         hasEvents={events.length > 0}

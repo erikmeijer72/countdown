@@ -38,11 +38,11 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onImport, onExport, onDele
             initial={{ opacity: 0, scale: 0.9, y: -20, x: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0, x: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: -20 }}
-            className="fixed top-20 right-6 z-50 w-64 bg-white dark:bg-[#1e293b] rounded-2xl shadow-xl border border-gray-200 dark:border-white/10 overflow-hidden"
+            className="fixed top-20 left-6 z-50 w-64 bg-white dark:bg-[#1e293b] rounded-2xl shadow-xl border border-gray-200 dark:border-white/10 overflow-hidden"
           >
             <div className="p-2 space-y-1">
               
-              {/* Install Button - Only visible when browser allows installation */}
+              {/* Install Button - Visible if iOS or Android deferred prompt available */}
               {canInstall && (
                 <>
                   <button
@@ -116,8 +116,6 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onImport, onExport, onDele
                 onClick={() => {
                   if (hasEvents) {
                     onDeleteAll();
-                    // Don't close immediately to allow confirm dialog to show cleanly in parent, 
-                    // though parent logic handles closure.
                   }
                 }}
                 disabled={!hasEvents}
