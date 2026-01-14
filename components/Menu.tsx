@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, Upload, Trash2, Moon, Sun, CalendarPlus } from 'lucide-react';
+import { Download, Upload, Trash2, Moon, Sun, CalendarPlus, Smartphone } from 'lucide-react';
 
 interface MenuProps {
   isOpen: boolean;
@@ -9,12 +9,14 @@ interface MenuProps {
   onExport: () => void;
   onDeleteAll: () => void;
   onAddHolidays: () => void;
+  onInstall: () => void;
+  canInstall: boolean;
   isDark: boolean;
   toggleTheme: () => void;
   hasEvents: boolean;
 }
 
-const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onImport, onExport, onDeleteAll, onAddHolidays, isDark, toggleTheme, hasEvents }) => {
+const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onImport, onExport, onDeleteAll, onAddHolidays, onInstall, canInstall, isDark, toggleTheme, hasEvents }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImportClick = () => {
@@ -39,6 +41,24 @@ const Menu: React.FC<MenuProps> = ({ isOpen, onClose, onImport, onExport, onDele
             className="fixed top-20 right-6 z-50 w-64 bg-white dark:bg-[#1e293b] rounded-2xl shadow-xl border border-gray-200 dark:border-white/10 overflow-hidden"
           >
             <div className="p-2 space-y-1">
+              
+              {/* Install Button - Only visible when browser allows installation */}
+              {canInstall && (
+                <>
+                  <button
+                    onClick={() => {
+                      onInstall();
+                      onClose();
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-white bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 rounded-xl transition-all shadow-md"
+                  >
+                    <Smartphone size={18} />
+                    App Installeren
+                  </button>
+                  <div className="h-px bg-gray-200 dark:bg-white/10 my-1" />
+                </>
+              )}
+
               <button
                 onClick={() => {
                   toggleTheme();

@@ -48,6 +48,9 @@ const App: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<EventItem | null>(null);
+  
+  // PWA Install Prompt State
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   // Result Modal State
   const [resultModal, setResultModal] = useState<{
@@ -90,6 +93,38 @@ const App: React.FC = () => {
       localStorage.setItem('lumina_theme', 'light');
     }
   }, [isDark]);
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      // Prevent the mini-infobar from appearing on mobile
+      e.preventDefault();
+      // Stash the event so it can be triggered later.
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handler);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+    };
+  }, []);
+
+  const handleInstallClick = () => {
+    if (!deferredPrompt) return;
+    
+    // Show the install prompt
+    deferredPrompt.prompt();
+    
+    // Wait for the user to respond to the prompt
+    deferredPrompt.userChoice.then((choiceResult: any) => {
+      if (choiceResult.outcome === 'accepted') {
+        console.log('User accepted the install prompt');
+      } else {
+        console.log('User dismissed the install prompt');
+      }
+      setDeferredPrompt(null);
+    });
+  };
 
   const toggleTheme = () => setIsDark(!isDark);
 
@@ -322,6 +357,8 @@ const App: React.FC = () => {
         onExport={handleExport}
         onDeleteAll={deleteAllEvents}
         onAddHolidays={handleAddHolidays}
+        onInstall={handleInstallClick}
+        canInstall={!!deferredPrompt}
         isDark={isDark}
         toggleTheme={toggleTheme}
         hasEvents={events.length > 0}
