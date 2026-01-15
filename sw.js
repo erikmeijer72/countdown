@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'lumina-countdown-v8';
+const CACHE_NAME = 'lumina-countdown-v9';
 const urlsToCache = [
   '/',
   '/index.html',
