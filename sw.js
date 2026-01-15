@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'lumina-countdown-v1';
+const CACHE_NAME = 'lumina-countdown-v2';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -8,10 +8,16 @@ const urlsToCache = [
 ];
 
 self.addEventListener('install', (event) => {
+  // Force this service worker to become the active service worker
+  self.skipWaiting();
+  
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
         return cache.addAll(urlsToCache);
+      })
+      .catch((error) => {
+         console.error('Failed to cache resources:', error);
       })
   );
 });
@@ -31,15 +37,20 @@ self.addEventListener('fetch', (event) => {
 
 self.addEventListener('activate', (event) => {
   const cacheWhitelist = [CACHE_NAME];
+  
+  // Take control of all clients immediately
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+    Promise.all([
+      self.clients.claim(),
+      caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            if (cacheWhitelist.indexOf(cacheName) === -1) {
+              return caches.delete(cacheName);
+            }
+          })
+        );
+      })
+    ])
   );
 });
