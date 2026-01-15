@@ -1,9 +1,10 @@
 
-const CACHE_NAME = 'lumina-countdown-v9';
+const CACHE_NAME = 'lumina-countdown-v10';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/manifest.json'
+  '/manifest.json',
+  '/countdown.png'
 ];
 
 self.addEventListener('install', (event) => {
