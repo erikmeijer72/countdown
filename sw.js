@@ -1,14 +1,12 @@
 
-const CACHE_NAME = 'lumina-countdown-v2';
+const CACHE_NAME = 'lumina-countdown-v4';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/manifest.json',
-  '/countdown.png'
+  '/manifest.json'
 ];
 
 self.addEventListener('install', (event) => {
-  // Force this service worker to become the active service worker
   self.skipWaiting();
   
   event.waitUntil(
@@ -26,7 +24,6 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
-        // Cache hit - return response
         if (response) {
           return response;
         }
@@ -37,8 +34,6 @@ self.addEventListener('fetch', (event) => {
 
 self.addEventListener('activate', (event) => {
   const cacheWhitelist = [CACHE_NAME];
-  
-  // Take control of all clients immediately
   event.waitUntil(
     Promise.all([
       self.clients.claim(),
